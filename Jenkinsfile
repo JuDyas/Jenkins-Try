@@ -12,7 +12,7 @@ pipeline {
             }
         }
 
-        stage('Build'){
+        stage('Build') {
             steps {
                 script {
                     docker.build(DOCKER_IMAGE)
@@ -20,16 +20,18 @@ pipeline {
             }
         }
 
-        stage('Test'){
-            script{
-                docker.image(DOCKER_IMAGE).inside{
-                    sh 'go test ./...'
+        stage('Test') {
+            steps {
+                script {
+                    docker.image(DOCKER_IMAGE).inside {
+                        sh 'go test ./...'
+                    }
                 }
             }
         }
 
-        stage('Deploy'){
-            steps{
+        stage('Deploy') {
+            steps {
                 echo 'Deploy step (implement if needed)'
             }
         }
