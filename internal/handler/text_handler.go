@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/JuDyas/GolangPractice/try_jenkins/internal/service"
@@ -11,10 +12,9 @@ type WordCountRequest struct {
 	Text string `json:"text"`
 }
 
-//lol
 func CountWords(c echo.Context) error {
 	var req WordCountRequest
-
+	fmt.Println(req)
 	if err := c.Bind(&req); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"message": "Invalid input"})
 	}
