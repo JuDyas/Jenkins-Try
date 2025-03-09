@@ -11,6 +11,7 @@ type WordCountRequest struct {
 	Text string `json:"text"`
 }
 
+//lol
 func CountWords(c echo.Context) error {
 	var req WordCountRequest
 
