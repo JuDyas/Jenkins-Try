@@ -15,7 +15,7 @@ pipeline {
                     def branchName = env.BRANCH_NAME
                     if (branchName == 'main') {
                         MAJOR_VERSION = sh(script: "git rev-list --count origin/main", returnStdout: true).trim()
-                        PATCH_VERSION = sh(script: "git rev-list --count origin/feature/*", returnStdout: true).trim()
+                        PATCH_VERSION = sh(script: "git rev-list --count origin/feature", returnStdout: true).trim()
                         MINOR_VERSION = sh(script: "git rev-list --count origin/develop", returnStdout: true).trim()
 
                         VERSION = "${MAJOR_VERSION}.${MINOR_VERSION}.${PATCH_VERSION}"
