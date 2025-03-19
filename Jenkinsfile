@@ -3,7 +3,6 @@ pipeline {
 
     environment {
         DOCKER_IMAGE = 'my-golang-app'
-        BASE_VERSION = '1.0.0'
         DOCKER_HOST = "unix:///var/run/docker.sock"
     }
 
@@ -22,7 +21,7 @@ pipeline {
                     def mainCommits = sh(script: "git rev-list origin/main --count", returnStdout: true).trim()
                     def developCommits = sh(script: "git rev-list origin/develop --count", returnStdout: true).trim()
 
-                    def calculatedVersion = "${env.BASE_VERSION}-${mainCommits}.${developCommits}.${featureCommits}"
+                    def calculatedVersion = "${mainCommits}.${developCommits}.${featureCommits}"
 
                     echo "Calculated version: ${calculatedVersion}"
                     env.APP_VERSION = calculatedVersion
