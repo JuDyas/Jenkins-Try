@@ -2,94 +2,90 @@ pipeline {
     agent any
 
     environment {
-        VERSION = ''
-        MAJOR_VERSION = '1'
-        MINOR_VERSION = '0'
-        PATCH_VERSION = '0'
+        // Задайте переменные среды: название образа и базовая версия
+        DOCKER_IMAGE = 'my-golang-app'
+        BASE_VERSION = '1.0.0'
     }
 
-    stages { // <-- Единственная секция для стадий
+    stages {
         stage('Checkout') {
-        steps {
-            script {
-                def branchName = env.BRANCH_NAME
-                    if (branchName == 'main') {
-                    // Подсчёт версий
-                        MAJOR_VERSION = sh(script: "git rev-list --count origin/main || echo '0'", returnStdout: true).trim()
-                        echo "MAJOR_VERSION: ${MAJOR_VERSION}"
-
-                        PATCH_VERSION = sh(script: """
-                        git for-each-ref --format='%(refname:short)' refs/remotes/origin/feature/* | wc -l || echo '0'
-                        """, returnStdout: true).trim()
-                        echo "PATCH_VERSION: ${PATCH_VERSION}"
-
-                        MINOR_VERSION = sh(script: "git rev-list --count origin/develop || echo '0'", returnStdout: true).trim()
-                        echo "MINOR_VERSION: ${MINOR_VERSION}"
-
-                        // Формирование итоговой версии
-                        VERSION = "${MAJOR_VERSION}.${MINOR_VERSION}.${PATCH_VERSION}"
-                        echo "VERSION: ${VERSION}"
-
-                        if (!VERSION?.trim()) {
-                        error("VERSION is empty! MAJOR_VERSION=${MAJOR_VERSION}, MINOR_VERSION=${MINOR_VERSION}, PATCH_VERSION=${PATCH_VERSION}")
-                        }
-                    }
-                }
+            steps {
+                // Клонирование репозитория
                 checkout scm
             }
         }
 
-        stage('Check Docker') {
-        steps {
-            script {
-                sh 'docker --version'
+        stage('Calculate Version') {
+            steps {
+                script {
+                    // Подсчет коммитов в ветках
+                    def featureCommits = sh(script: "git rev-list origin/feature --count", returnStdout: true).trim()
+                    def mainCommits = sh(script: "git rev-list origin/main --count", returnStdout: true).trim()
+                    def developCommits = sh(script: "git rev-list origin/develop --count", returnStdout: true).trim()
+
+                    // Расчет версии (BASE_VERSION + main + разработка)
+                    def calculatedVersion = "${env.BASE_VERSION}-${mainCommits}.${developCommits}.${featureCommits}"
+
+                    echo "Calculated version: ${calculatedVersion}"
+
+                    // Сохранение версии
+                    env.APP_VERSION = calculatedVersion
                 }
             }
         }
 
-        stage('Build') {
-        steps {
-            script {
-                echo "Building Docker image with VERSION: ${VERSION}"
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    // Сборка Docker-образа и тегирование
+                    sh "docker build -t ${env.DOCKER_IMAGE}:${env.APP_VERSION} ."
+                }
+            }
+        }
 
-                    // Проверяем, что VERSION не пустая
-                    if (!VERSION?.trim()) {
-                    error("VERSION is empty! Unable to proceed with Docker build.")
+        stage('Test Docker Container') {
+            steps {
+                script {
+                    // Запуск контейнера для тестов
+                    sh "docker run --name test-container -d ${env.DOCKER_IMAGE}:${env.APP_VERSION}"
+
+                    // Здесь можно добавить команды тестирования. Пример:
+                    try {
+                        sh "docker exec test-container go test ./..."
+                        echo "All tests passed successfully."
+                    } finally {
+                        // Удаляем контейнер после тестов
+                        sh "docker rm -f test-container"
                     }
-
-                    sh "docker build -t myapp:${VERSION} ."
-                }
-            }
-        }
-
-        stage('Test') {
-        steps {
-            script {
-                echo 'Running tests...'
                 }
             }
         }
 
         stage('Deploy') {
-        steps {
-            script {
-                echo "Deploying Docker image..."
-                    sh """
-                    docker stop myapp || true
-                    docker rm myapp || true
-                    docker run -d --name myapp -p 8082:8082 myapp:${VERSION}
-                    """
+            steps {
+                script {
+                    // Деплой контейнера
+                    sh "docker run -d -p 8080:8080 --name app-container ${env.DOCKER_IMAGE}:${env.APP_VERSION}"
+
+                    echo "Application deployed successfully. Running version: ${env.APP_VERSION}"
                 }
             }
         }
     }
 
     post {
+        // Очистка окружения после сборки
+        always {
+            script {
+                // Удаление ненужных Docker-образов
+                sh "docker image prune -f"
+            }
+        }
         success {
-            echo "Build and deploy succeeded!"
+            echo 'Build completed successfully!'
         }
         failure {
-            echo "Build failed."
+            echo 'Build failed!'
         }
     }
 }
