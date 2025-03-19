@@ -62,7 +62,7 @@ pipeline {
             steps {
                 script {
                     // Деплой контейнера
-                    sh "docker run -d -p 8080:8080 --name app-container ${env.DOCKER_IMAGE}:${env.APP_VERSION}"
+                    sh "docker run -d -p 8081:8081 --name app-container ${env.DOCKER_IMAGE}:${env.APP_VERSION}"
 
                     echo "Application deployed successfully. Running version: ${env.APP_VERSION}"
                 }
