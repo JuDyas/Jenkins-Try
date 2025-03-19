@@ -5,11 +5,13 @@ pipeline {
         // Задайте переменные среды: название образа и базовая версия
         DOCKER_IMAGE = 'my-golang-app'
         BASE_VERSION = '1.0.0'
+        DOCKER_HOST = "unix:///var/run/docker.sock"
     }
 
     stages {
         stage('Checkout') {
             steps {
+                sh 'docker ps'
                 // Клонирование репозитория
                 checkout scm
             }
