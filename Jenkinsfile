@@ -45,23 +45,18 @@ pipeline {
             }
         }
 
-        stage('Test Docker Container') {
+        stage('Test in Builder') {
             steps {
                 script {
-                    // Запуск контейнера для тестов
-                    sh "docker run --name test-container -d ${env.DOCKER_IMAGE}:${env.APP_VERSION}"
+                    // Собираем промежуточный "builder" образ, где выполняются тесты
+                    sh "docker build -t builder-test --target builder -f Dockerfile ."
 
-                    // Здесь можно добавить команды тестирования. Пример:
-                    try {
-                        sh "docker exec test-container go test ./..."
-                        echo "All tests passed successfully."
-                    } finally {
-                        // Удаляем контейнер после тестов
-                        sh "docker rm -f test-container"
-                    }
+                    // Запуск тестов в "builder" образе
+                    sh "docker run --rm builder-test go test ./..."
                 }
             }
         }
+
 
         stage('Deploy') {
             steps {
